@@ -3,6 +3,7 @@
 #include <iostream>
 #include <cassert>
 #include <cstring>
+#include <stack>  // para usar la pila
 
 namespace image{
 
@@ -30,6 +31,7 @@ namespace image{
             }
         }
     }
+
     int Image::getValue(int row, int col){
         int pos = row*width + col;
         return static_cast<int>(data[pos]);
@@ -41,12 +43,11 @@ namespace image{
         std::cout << "---------------------" << std::endl;
         for(int i = 0 ; i < height ; i++ ){
             for(int j = 0; j < width; j++ ){
-                //std::cout<< getValue(i,j) << " "; 
                 if (getValue(i,j) == 0) {
-                    std::cout<<" ";
+                    std::cout<<"0";
                 }
                 else{
-                    std::cout<<"*";
+                    std::cout<<"1";
                 }
             }
             std::cout<<std::endl;
@@ -99,5 +100,52 @@ namespace image{
         return im;
     }
 
-}
+    // ---------------- NUEVAS FUNCIONES ---------------------
 
+    // Método que encuentra todas las regiones en la imagen usando una pila
+    ListOfRegion Image::getRegions() {
+        ListOfRegion regions;
+        bool* visited = new bool[width * height]();  // Array para marcar píxeles visitados
+
+        for (int i = 0; i < height; ++i) {
+            for (int j = 0; j < width; ++j) {
+                if (getValue(i, j) == 1 && !visited[i * width + j]) {
+                    // Nueva región encontrada, iniciar un nuevo recorrido con pila
+                    Region newRegion;
+                    stackBasedRegionSearch(i, j, visited, newRegion);
+                    regions.addRegion(newRegion);  // Añadir la región encontrada
+                }
+            }
+        }
+
+        delete[] visited;
+        return regions;
+    }
+
+    // Método auxiliar que utiliza una pila para recorrer una región conectada
+    void Image::stackBasedRegionSearch(int row, int col, bool* visited, Region& region) {
+        std::stack<Point2D> stack;
+        stack.push(Point2D(row, col));
+
+        while (!stack.empty()) {
+            Point2D current = stack.top();
+            stack.pop();
+
+            int x = current.getX();
+            int y = current.getY();
+
+            // Validar si el pixel es parte de la imagen y no ha sido visitado
+            if (x >= 0 && x < height && y >= 0 && y < width && getValue(x, y) == 1 && !visited[x * width + y]) {
+                visited[x * width + y] = true;  // Marcar el pixel como visitado
+                region.addPoint(Point2D(x, y));  // Añadir el pixel a la región
+
+                // Añadir los vecinos a la pila para continuar la exploración
+                stack.push(Point2D(x+1, y));
+                stack.push(Point2D(x-1, y));
+                stack.push(Point2D(x, y+1));
+                stack.push(Point2D(x, y-1));
+            }
+        }
+    }
+
+}
